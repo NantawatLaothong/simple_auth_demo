@@ -29,15 +29,15 @@ app.get('/register', (req, res)=>{
 app.post('/register', async (req, res)=>{
     // hashing and salting the password 
     const {password, username} = req.body;
-    const salt = await bcrypt.genSalt(12);
-    const hash = await bcrypt.hash(password, salt);
     // creating a user
     const user = new User({
-        username,
-        hashedPassword: hash
+        username: username,
+        hashedPassword: password
     });
-    res.session.user_id = user._id
-    res.redirect('/');
+    console.log(user);
+    await user.save();
+    req.session.user_id = user._id
+    res.redirect('/secret');
 })
 
 app.get('/login', async(req, res)=>{
@@ -48,13 +48,10 @@ app.get('/login', async(req, res)=>{
 // password: password, monkey
 app.post('/login', async(req, res)=>{
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    // console.log(user);
-    // checking password
-    const validPassword = await bcrypt.compare(password, user.hashedPassword)
-    if(validPassword){
+    const foundUser = await User.findAndValidate(username, password);
+    if(foundUser){
         // if the user successfully login, we will store the user id in their session
-        req.session.user_id = user._id;
+        req.session.user_id = foundUser._id;
         res.redirect('/secret');
     } else {
         res.redirect('/login');
